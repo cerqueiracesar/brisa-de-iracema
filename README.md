@@ -12,6 +12,8 @@ Microempreendedores do setor de serviços e alimentação sofrem com a "cegueira
 * **Banco de Dados:** Google Sheets (Arquitetura de Data Mart)
 * **BI & Visualização:** Looker Studio (Dashboards de KPIs)
 
+![Dashboard Brisa de Iracema](dashboard_brisa-de-iracema.png)
+
 ## 🏗️ Arquitetura da Solução
 1.  **Ingestão:** Usuário envia foto da nota fiscal ou áudio de venda via Telegram.
 2.  **Processamento:** n8n aciona agentes de IA para extrair itens, quantidades e valores.
