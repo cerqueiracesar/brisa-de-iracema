@@ -20,7 +20,7 @@ Microempreendedores do setor de serviços e alimentação sofrem com a "cegueira
 3.  **Armazenamento:** Dados higienizados são inseridos no Sheets e as fórmulas de matriz calculam a meta diária.
 4.  **Decisão:** O empreendedor consulta o Dashboard para ver se já atingiu o lucro do dia.
 
-
+![Workflow Brisa de Iracema](workflow-n8n.png)
 
 ## 📊 Principais Funcionalidades
 - **OCR de Notas Fiscais:** Desmembramento automático de compras complexas.
