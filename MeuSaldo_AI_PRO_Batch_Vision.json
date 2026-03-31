@@ -1,0 +1,741 @@
+{
+  "name": "MeuSaldo_AI_PRO_Batch_Vision",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "id": "072636a6-be64-47f9-b8f7-c6d0e833a602",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        496,
+        -320
+      ],
+      "webhookId": "67babc51-74fc-4e00-bae1-0d1a1d3d615a",
+      "credentials": {
+        "telegramApi": {
+          "id": "8ucWwiLmZpHSezxH",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "value2": "/fechar"
+            }
+          ]
+        }
+      },
+      "id": "61eec142-f3cc-4aa7-aec4-275f7bbc6116",
+      "name": "É fechamento?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.message.photo }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "6a05d9c6-7bda-44fc-b296-07f2ec124443",
+      "name": "É Foto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        816,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "406fbc8f-4094-47ea-888c-b257111f12ed",
+      "name": "Gemini Vision (Notas)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        -272
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "PIu60KNWhrerRcFb",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "Mensagem"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -96
+      ],
+      "id": "05aaa003-e860-45f5-83a7-bdb02aade595",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Contexto: Você é um Engenheiro de Dados Financeiros de uma Barraca de Praia / Negócio à beira-mar.\n\nSua Missão: \n1. Consolidar itens iguais (Ex: \"vendi 2 águas\" + \"vendi 5 águas\" = \"Venda de 7 águas\").\n2. Categorizar cada transação em: [Vendas, Insumos, Logística, Alimentação, Pessoal].\n3. Calcular o valor total de Entrada e Saída.\n4. Identificar o \"Clima Financeiro\" do dia (Lucrativo, Equilibrado ou Prejuízo).\n\nRegras de Negócio:\n\n- Ignore mensagens que não sejam financeiras (ex: \"bom dia\", \"tá calor\").\n\n- Se houver dúvida sobre um valor, coloque 0.00 e descreva no item.\n\n- Formato de Saída (JSON estrito):\n[\n{\n\"descricao\": \"Consolidado: 7 águas\",\n\"categoria\": \"Vendas\",\n\"entrada\": 35.00,\n\"saida\": 0.00\n},\n{\n\"descricao\": \"Almoço e suco\",\n\"categoria\": \"Alimentação\",\n\"entrada\": 0.00,\n\"saida\": 22.50\n}\n]\n\n- Atenção aos Serviços: Termos como \"aluguei cadeira\", \"aluguel de guarda-sol\" ou \"aluguel de prancha\" referem-se a serviços prestados aos clientes. Portanto, devem ser classificados na categoria \"Vendas\" (ou \"Serviços\") e o valor DEVE ir para Entrada (receita).\n\nResponda APENAS com um JSON puro, sem blocos de código markdown ```json\n\n=== DADOS DO DIA PARA PROCESSAR ===\n\n{{ $json.Mensagem }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1376,
+        -96
+      ],
+      "id": "e4d4b4d1-e722-454e-b876-a3ada18d0c42",
+      "name": "AI Agent (texto)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Contexto: Você é um assistente de Engenharia de Dados responsável por ler notas fiscais de compras de insumos.\n\nMissão: Extrair os dados da imagem em anexo e devolvê-los ESTRITAMENTE em um formato JSON puro.\n\nRegras:\n\nNão inclua blocos de código markdown (```json).\n\nSe a data não estiver visível na nota, use a data de hoje.\n\nFormato de Saída Exigido:\n{\n\"data\": \"DD/MM/YYYY\",\n\"local\": \"Nome do Fornecedor ou Loja\",\n\"produtos\": [\n{\n\"item\": \"Nome do Produto\",\n\"quantidade\": 10,\n\"preco_unitario\": 2,50,\n\"preco_total\": 25,00\n}\n]\n}",
+        "options": {
+          "passthroughBinaryImages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1008,
+        -496
+      ],
+      "id": "2b4f3a02-ba3b-40eb-99c4-59c8bcaf3c11",
+      "name": "AI Agent (imagem)"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Log_Temporario",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $now.format('dd/MM/yyyy HH:mm') }}",
+            "Mensagem": "={{ $json.message.text }}",
+            "Usuario": "={{ $json.message.from.first_name }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mensagem",
+              "displayName": "Mensagem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "de9d708e-ef99-4ab9-bcf1-c3497764082f",
+      "name": "Log Temporário",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        976,
+        160
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kUGPOqcrd213AaUH",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Pega o texto gerado pela IA e transforma em um Objeto JSON\nconst dadosDaNota = JSON.parse($input.first().json.output);\nconst itensSeparados = [];\n\n// 2. Faz um loop por todos os produtos que a IA encontrou na nota\nfor (const produto of dadosDaNota.produtos) {\n  \n  // 3. Monta a linha virtual completa para o Google Sheets\n  itensSeparados.push({\n    json: {\n      Data: dadosDaNota.data,\n      Local: dadosDaNota.local,\n      Item: produto.item,\n      Quantidade: produto.quantidade,\n      Preco_Unitario: produto.preco_unitario,\n      Preco_Total: produto.preco_total\n    }\n  });\n}\n\n// 4. Entrega as linhas separadas para o n8n\nreturn itensSeparados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        -384
+      ],
+      "id": "a2447301-6b55-46d5-a79a-62fe15bf45dc",
+      "name": "Script Desmembrar"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Compras_Detalhes",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $json.data }}",
+            "Item": "={{ $json.item }}",
+            "Preco_Unitario": "={{ $json.preco_unitario }}",
+            "Local": "={{ $json.local }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Item",
+              "displayName": "Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Preco_Unitario",
+              "displayName": "Preco_Unitario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Local",
+              "displayName": "Local",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        -496
+      ],
+      "id": "29f79174-6937-49d0-a6e0-bef3ad7934e0",
+      "name": "Compras_Detalhes",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kUGPOqcrd213AaUH",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega no output de texto do Agente e converte para JSON\nconst resumoDoDia = JSON.parse($input.first().json.output);\nconst linhasSeparadas = [];\n\n// Faz um loop pelas transações consolidadas\nfor (const transacao of resumoDoDia) {\n  linhasSeparadas.push({\n    json: {\n      descricao: transacao.descricao,\n      categoria: transacao.categoria,\n      entrada: transacao.entrada,\n      saida: transacao.saida\n    }\n  });\n}\n\nreturn linhasSeparadas;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -240
+      ],
+      "id": "df7d9a31-4992-4e6c-acaa-2ffca9dc6834",
+      "name": "Desmembrar resumo"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 882929448,
+          "mode": "list",
+          "cachedResultName": "Log_Temporario",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8/edit#gid=882929448"
+        },
+        "options": {}
+      },
+      "id": "f2877dc5-c1f3-4be7-8ac5-0ac99ba97948",
+      "name": "Ler log_temporario",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        816,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kUGPOqcrd213AaUH",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Lancamentos",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $now.format('dd/MM/yyyy') }}",
+            "Descricao": "={{ $json.descricao }}",
+            "Categoria": "={{ $json.categoria }}",
+            "Entrada": "={{ $json.entrada }}",
+            "Saida": "={{ $json.saida }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Descricao",
+              "displayName": "Descricao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Categoria",
+              "displayName": "Categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Entrada",
+              "displayName": "Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Saida",
+              "displayName": "Saida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        -96
+      ],
+      "id": "6cf94b1e-2e9d-42bf-ad6d-fa5e9439ba9d",
+      "name": "Lançamentos",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kUGPOqcrd213AaUH",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Log_Temporario",
+          "mode": "name"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1728,
+        160
+      ],
+      "id": "8fdfe8ba-4d73-4ce6-9aa6-48dacb512124",
+      "name": "Limpar logs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kUGPOqcrd213AaUH",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        112
+      ],
+      "id": "2ac25966-5086-477b-ba94-3f781ba3e657",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "f3ZCLNxVNUWU7wA4",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1g49lbdmq7LDu7PFicYJUKJfHrvzgjVTcaLrfr7KGZB8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Historico_Logs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $json.Data }}",
+            "Usuario": "={{ $json.Usuario }}",
+            "Mensagem": "={{ $json.Mensagem }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Usuario",
+              "displayName": "Usuario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mensagem",
+              "displayName": "Mensagem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "9a45a1d8-a931-4007-837f-50fd7c3bf6a2",
+      "name": "Historico_logs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kUGPOqcrd213AaUH",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "É fechamento?": {
+      "main": [
+        [
+          {
+            "node": "Ler log_temporario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Temporário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Foto?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (imagem)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "É fechamento?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "É Foto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (texto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Vision (Notas)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (imagem)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (texto)": {
+      "main": [
+        [
+          {
+            "node": "Desmembrar resumo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (imagem)": {
+      "main": [
+        [
+          {
+            "node": "Script Desmembrar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Temporário": {
+      "main": [
+        []
+      ]
+    },
+    "Script Desmembrar": {
+      "main": [
+        [
+          {
+            "node": "Compras_Detalhes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desmembrar resumo": {
+      "main": [
+        [
+          {
+            "node": "Lançamentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler log_temporario": {
+      "main": [
+        [
+          {
+            "node": "Historico_logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lançamentos": {
+      "main": [
+        [
+          {
+            "node": "Limpar logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (texto)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Historico_logs": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "28dfbdda-5356-4969-83b0-106d13b88d94",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2636c336a8a26a79352dc9db6ec40e37395cd78b0232976cdd8f39c6fbd85059"
+  },
+  "id": "qZulni484v2bqHh1",
+  "tags": []
+}
